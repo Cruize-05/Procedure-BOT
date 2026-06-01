@@ -130,9 +130,9 @@ You can copy and paste this directly into a markdown file in your repository.
 * [x] Enqueue chunks via standard `ReadableStream` conforming to **Server-Sent Events (SSE)** syntax formatting boundaries (`data: {"text": "..."}\n\n`).
 
 
-* [ ] **3.4 TDD Verification**
-* [ ] Write mock execution tests intercepting requests to `/api/chat-stream`.
-* [ ] Validate proper generation of chunk blocks and check off-topic payload rejection handling properties.
+* [x] **3.4 TDD Verification**
+* [x] Write mock execution tests intercepting requests to `/api/chat-stream`.
+* [x] Validate proper generation of chunk blocks and check off-topic payload rejection handling properties.
 
 
 

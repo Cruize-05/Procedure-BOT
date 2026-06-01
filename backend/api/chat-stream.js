@@ -1,19 +1,32 @@
 // Vercel Edge Runtime — Gemini RAG + SSE streaming
 export const config = { runtime: 'edge' };
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
-// ── IP-based token-bucket rate limiter (10 req / 60 s per IP) ──────────────
+// ── IP-based token-bucket rate limiter ─────────────────────────────────────
+// Max 10 requests / 60 s per IP. Capped at MAX_BUCKETS entries to bound
+// memory in long-running isolates; oldest entry is evicted on overflow.
 const buckets = new Map(); // ip → { tokens, lastRefill }
 const RATE_LIMIT = 10;
 const WINDOW_MS = 60_000;
+const MAX_BUCKETS = 10_000;
+
+/** Exposed only for test isolation — do not call in production paths. */
+export function _testOnly_clearBuckets() {
+  buckets.clear();
+}
 
 function isRateLimited(ip) {
   const now = Date.now();
-  const bucket = buckets.get(ip) ?? { tokens: RATE_LIMIT, lastRefill: now };
+  let bucket = buckets.get(ip);
 
-  const elapsed = now - bucket.lastRefill;
-  if (elapsed >= WINDOW_MS) {
+  if (!bucket) {
+    if (buckets.size >= MAX_BUCKETS) {
+      // Evict the oldest insertion-order entry
+      buckets.delete(buckets.keys().next().value);
+    }
+    bucket = { tokens: RATE_LIMIT, lastRefill: now };
+  } else if (now - bucket.lastRefill >= WINDOW_MS) {
     bucket.tokens = RATE_LIMIT;
     bucket.lastRefill = now;
   }
@@ -28,23 +41,36 @@ function isRateLimited(ip) {
   return false;
 }
 
-// ── System prompt factory ───────────────────────────────────────────────────
-function buildSystemPrompt(procedureDoc, language) {
-  const lang = language === 'fr' ? 'French' : 'English';
-  const content = JSON.stringify(procedureDoc[language] ?? {});
+// ── System prompt factory ──────────────────────────────────────────────────
+export function buildSystemPrompt(procedureDoc, language) {
+  const langKey = language === 'fr' ? 'fr' : 'en';
+  const langLabel = langKey === 'fr' ? 'French' : 'English';
+  const procedureName = procedureDoc.name?.[langKey] ?? procedureDoc.procedure_code;
 
-  return `You are ProcedureBot CM, a civic assistant specialising in Cameroonian administrative procedures.
+  // Project only the language-specific slice to minimise context tokens
+  const docSlice = {
+    name: procedureDoc.name?.[langKey],
+    target_office: procedureDoc.target_office?.[langKey],
+    official_cost_cfa: procedureDoc.official_cost_cfa,
+    estimated_timeline: procedureDoc.estimated_timeline?.[langKey],
+    required_documents: procedureDoc.required_documents?.[langKey],
+    steps: procedureDoc.steps?.[langKey],
+  };
 
-STRICT RULES:
-1. Answer ONLY using the procedure document provided below. Never invent costs, timelines, or steps.
-2. If the answer is not in the document, say so explicitly.
-3. If the query is off-topic, provide minimal general context and tell the user to select a different procedure from the top dropdown.
-4. Always respond in ${lang}.
+  return `You are ProcedureBot CM, a civic assistant specialising in Cameroonian administrative procedures. You are currently loaded with the document for: "${procedureName}".
+
+STRICT RULES — follow all without exception:
+1. GROUND TRUTH ONLY: Answer exclusively from the PROCEDURE DOCUMENT below. Never invent, extrapolate, or infer costs, timelines, steps, or document requirements not present in the document.
+2. MISSING INFORMATION: If the user asks about something absent from the document, respond exactly: "This information is not available in the current procedure document."
+3. OFF-TOPIC REDIRECT: If the query concerns a different procedure or an unrelated topic, provide at most one sentence of general administrative context, then instruct the user: "Please select the relevant procedure from the dropdown menu at the top of the page."
+4. LANGUAGE: Respond entirely in ${langLabel}. Never mix languages in a single response.
+5. NO HALLUCINATION: Never guess, estimate, or use hedging phrases such as "probably", "I think", or "it might be".
 
 PROCEDURE DOCUMENT:
-${content}`;
+${JSON.stringify(docSlice, null, 2)}`;
 }
 
+// ── Edge handler ────────────────────────────────────────────────────────────
 export default async function handler(req) {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
@@ -56,7 +82,7 @@ export default async function handler(req) {
   if (isRateLimited(ip)) {
     return new Response(
       JSON.stringify({ error: 'Rate limit exceeded. Try again in a minute.' }),
-      { status: 429, headers: { 'Content-Type': 'application/json' } }
+      { status: 429, headers: { 'Content-Type': 'application/json' } },
     );
   }
 
@@ -75,11 +101,13 @@ export default async function handler(req) {
   if (!procedure_code || !message) {
     return new Response(
       JSON.stringify({ error: '`procedure_code` and `message` are required.' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
+      { status: 400, headers: { 'Content-Type': 'application/json' } },
     );
   }
 
-  // Lazy MongoDB import — edge runtime supports dynamic import
+  const normalizedLang = language === 'fr' ? 'fr' : 'en';
+
+  // ── DB lookup (dynamic import keeps mongoose out of the Edge cold-start path)
   const { default: mongoose } = await import('mongoose');
   const { Procedure } = await import('../shared/schema.js');
 
@@ -92,35 +120,35 @@ export default async function handler(req) {
   if (!procedure) {
     return new Response(
       JSON.stringify({ error: `Procedure '${procedure_code}' not found.` }),
-      { status: 404, headers: { 'Content-Type': 'application/json' } }
+      { status: 404, headers: { 'Content-Type': 'application/json' } },
     );
   }
 
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
-  const systemPrompt = buildSystemPrompt(procedure, language);
+  // ── Gemini streaming ──────────────────────────────────────────────────────
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
 
-      try {
-        const result = await model.generateContentStream([
-          { text: systemPrompt },
-          { text: message },
-        ]);
+      const enqueue = (payload) =>
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
 
-        for await (const chunk of result.stream) {
-          const text = chunk.text();
-          if (text) {
-            const ssePayload = `data: ${JSON.stringify({ text })}\n\n`;
-            controller.enqueue(encoder.encode(ssePayload));
-          }
+      try {
+        const result = await ai.models.generateContentStream({
+          model: 'gemini-1.5-flash',
+          contents: [{ role: 'user', parts: [{ text: message }] }],
+          config: {
+            systemInstruction: buildSystemPrompt(procedure, normalizedLang),
+          },
+        });
+
+        for await (const chunk of result) {
+          const text = chunk.text;
+          if (text) enqueue({ text });
         }
       } catch (err) {
-        const errPayload = `data: ${JSON.stringify({ error: err.message })}\n\n`;
-        controller.enqueue(encoder.encode(errPayload));
+        enqueue({ error: err.message ?? 'Streaming error.' });
       } finally {
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
@@ -133,6 +161,7 @@ export default async function handler(req) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
     },
   });
 }

@@ -2,22 +2,8 @@ import mongoose from 'mongoose';
 
 const stepSchema = new mongoose.Schema(
   {
-    order: { type: Number, required: true },
-    description: { type: String, required: true },
-  },
-  { _id: false }
-);
-
-const localizedContentSchema = new mongoose.Schema(
-  {
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    steps: { type: [stepSchema], required: true },
-    required_documents: { type: [String], required: true },
-    fees: { type: String, required: true },
-    estimated_duration: { type: String, required: true },
-    issuing_authority: { type: String, required: true },
-    notes: { type: String, default: '' },
+    step_number: { type: Number, required: true },
+    instruction: { type: String, required: true },
   },
   { _id: false }
 );
@@ -32,10 +18,30 @@ const procedureSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
-    en: { type: localizedContentSchema, required: true },
-    fr: { type: localizedContentSchema, required: true },
-    tags: { type: [String], default: [] },
-    active: { type: Boolean, default: true },
+    name: {
+      en: { type: String, required: true },
+      fr: { type: String, required: true },
+    },
+    target_office: {
+      en: { type: String, required: true },
+      fr: { type: String, required: true },
+    },
+    official_cost_cfa: {
+      type: Number,
+      default: 0,
+    },
+    estimated_timeline: {
+      en: { type: String, required: true },
+      fr: { type: String, required: true },
+    },
+    required_documents: {
+      en: { type: [String], required: true },
+      fr: { type: [String], required: true },
+    },
+    steps: {
+      en: { type: [stepSchema], required: true },
+      fr: { type: [stepSchema], required: true },
+    },
   },
   {
     timestamps: true,

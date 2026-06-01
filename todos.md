@@ -92,9 +92,9 @@ You can copy and paste this directly into a markdown file in your repository.
 * [x] Program script to safely drop existing entries before populating collections to avoid duplicate documents.
 
 
-* [ ] **2.3 TDD Verification**
-* [ ] Set up an in-memory database configuration suite using `mongodb-memory-server`.
-* [ ] Write integration test ensuring database connectivity, schema execution, and validation that bilingual content streams separately without field cross-pollution.
+* [x] **2.3 TDD Verification**
+* [x] Set up an in-memory database configuration suite using `mongodb-memory-server`.
+* [x] Write integration test ensuring database connectivity, schema execution, and validation that bilingual content streams separately without field cross-pollution.
 
 
 

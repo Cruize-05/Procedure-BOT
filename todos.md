@@ -159,9 +159,9 @@ You can copy and paste this directly into a markdown file in your repository.
 * [x] Stream completed output files cleanly via pure binary stream payload buffers to minimize server-side footprint.
 
 
-* [ ] **4.4 TDD Verification**
-* [ ] Write validation tests evaluating structural processing components inside `/api/export-checklist`.
-* [ ] Confirm bad payloads or empty array arguments return clean `HTTP 400` codes instead of executing server faults.
+* [x] **4.4 TDD Verification**
+* [x] Write validation tests evaluating structural processing components inside `/api/export-checklist`.
+* [x] Confirm bad payloads or empty array arguments return clean `HTTP 400` codes instead of executing server faults.
 
 
 

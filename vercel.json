@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build --workspace=frontend",
+  "outputDirectory": "frontend/dist",
+  "functions": {
+    "backend/api/chat-stream.js": {
+      "runtime": "edge"
+    },
+    "backend/api/export-checklist.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    { "source": "/api/chat-stream", "destination": "/backend/api/chat-stream.js" },
+    { "source": "/api/export-checklist", "destination": "/backend/api/export-checklist.js" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

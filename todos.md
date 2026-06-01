@@ -8,40 +8,40 @@ You can copy and paste this directly into a markdown file in your repository.
 
 ## 📋 Phase 1: Workspace Scaffolding & CI/CD Setup
 
-* [ ] **1.1 Initialize Monorepo Directory Layout**
-* [ ] Create root project directory.
-* [ ] Initialize frontend project: `/frontend` (React 18, Vite, Tailwind CSS, shadcn/ui).
+* [x] **1.1 Initialize Monorepo Directory Layout**
+* [x] Create root project directory.
+* [x] Initialize frontend project: `/frontend` (React 18, Vite, Tailwind CSS, shadcn/ui).
 
 
-* [ ] Initialize serverless backend structure: `/backend/api/` (for Vercel Edge/Serverless functions).
+* [x] Initialize serverless backend structure: `/backend/api/` (for Vercel Edge/Serverless functions).
 
 
-* [ ] Create workspace configuration root `package.json`.
+* [x] Create workspace configuration root `package.json`.
 
 
-* [ ] **1.2 Setup Environment Configurations**
-* [ ] Create root `.env.example` file mapping: `GEMINI_API_KEY`, `MONGODB_URI`, `NODE_ENV`.
-* [ ] Set up local development scripts to emulate Vercel runtime behaviors natively.
+* [x] **1.2 Setup Environment Configurations**
+* [x] Create root `.env.example` file mapping: `GEMINI_API_KEY`, `MONGODB_URI`, `NODE_ENV`.
+* [x] Set up local development scripts to emulate Vercel runtime behaviors natively.
 
 
-* [ ] **1.3 Build GitLab CI/CD Pipeline Configuration**
-* [ ] Create `.gitlab-ci.yml` in the repository root.
+* [x] **1.3 Build GitLab CI/CD Pipeline Configuration**
+* [x] Create `.gitlab-ci.yml` in the repository root.
 
 
-* [ ] Configure syntax/linting validation stage for Javascript/Typescript files.
-* [ ] Configure SonarQube integration stage.
+* [x] Configure syntax/linting validation stage for Javascript/Typescript files.
+* [x] Configure SonarQube integration stage.
 
 
-* [ ] Modify SonarQube rules to log anomalies/security vulnerabilities as **Warnings** only, forcing an exit code of `0` so deployments aren't blocked.
+* [x] Modify SonarQube rules to log anomalies/security vulnerabilities as **Warnings** only, forcing an exit code of `0` so deployments aren't blocked.
 
 
-* [ ] Add Vercel dry-run compilation stage into the pipeline config.
+* [x] Add Vercel dry-run compilation stage into the pipeline config.
 
 
 
 
-* [ ] **1.4 TDD Verification**
-* [ ] Write directory structure and basic syntax baseline sanity unit tests using Vitest/Jest.
+* [x] **1.4 TDD Verification**
+* [x] Write directory structure and basic syntax baseline sanity unit tests using Vitest/Jest.
 * [ ] Commit files and verify the pipeline passes cleanly on GitLab with SonarQube warning flags operational.
 
 
@@ -52,44 +52,44 @@ You can copy and paste this directly into a markdown file in your repository.
 
 ## 🗄️ Phase 2: Database Layer & Data Seeding
 
-* [ ] **2.1 Implement Unified Bilingual MongoDB Schema**
-* [ ] Install Mongoose or native MongoDB database driver primitives in `/backend`.
+* [x] **2.1 Implement Unified Bilingual MongoDB Schema**
+* [x] Install Mongoose or native MongoDB database driver primitives in `/backend`.
 
 
-* [ ] Create `/backend/shared/schema.js`.
-* [ ] Define document model storing *both* English and French variations inside a single schema string.
+* [x] Create `/backend/shared/schema.js`.
+* [x] Define document model storing *both* English and French variations inside a single schema string.
 
 
-* [ ] Ensure strict schema properties match:
-* [ ] `procedure_code`: String (Unique, Indexed, Required)
-* [ ] `name`: Object { `en`: String, `fr`: String }
+* [x] Ensure strict schema properties match:
+* [x] `procedure_code`: String (Unique, Indexed, Required)
+* [x] `name`: Object { `en`: String, `fr`: String }
 
 
-* [ ] `target_office`: Object { `en`: String, `fr`: String }
+* [x] `target_office`: Object { `en`: String, `fr`: String }
 
 
-* [ ] `official_cost_cfa`: Number (Default: 0)
+* [x] `official_cost_cfa`: Number (Default: 0)
 
 
-* [ ] `estimated_timeline`: Object { `en`: String, `fr`: String }
+* [x] `estimated_timeline`: Object { `en`: String, `fr`: String }
 
 
-* [ ] `required_documents`: Object { `en`: [String], `fr`: [String] }
+* [x] `required_documents`: Object { `en`: [String], `fr`: [String] }
 
 
-* [ ] `steps`: Object { `en`: [{step_number: Number, instruction: String}], `fr`: [{step_number: Number, instruction: String}] }
-
-
-
+* [x] `steps`: Object { `en`: [{step_number: Number, instruction: String}], `fr`: [{step_number: Number, instruction: String}] }
 
 
 
-* [ ] **2.2 Create Database Seeding Script**
-* [ ] Create automated script `/backend/scripts/seed.js`.
-* [ ] Compile verified data for the **top 10 critical administrative procedures** in Cameroon (e.g., National ID Card, Birth Certificate, Business Registration).
 
 
-* [ ] Program script to safely drop existing entries before populating collections to avoid duplicate documents.
+
+* [x] **2.2 Create Database Seeding Script**
+* [x] Create automated script `/backend/scripts/seed.js`.
+* [x] Compile verified data for the **top 10 critical administrative procedures** in Cameroon (e.g., National ID Card, Birth Certificate, Business Registration).
+
+
+* [x] Program script to safely drop existing entries before populating collections to avoid duplicate documents.
 
 
 * [ ] **2.3 TDD Verification**
@@ -102,32 +102,32 @@ You can copy and paste this directly into a markdown file in your repository.
 
 ## 🤖 Phase 3: Serverless Streaming API Integration
 
-* [ ] **3.1 Build Serverless Endpoint Wrapper & Rate Limiter**
-* [ ] Create `/backend/api/chat-stream.js`.
-* [ ] Configure the explicit **Vercel Edge Runtime** engine flag (`export const config = { runtime: 'edge' };`) to prevent serverless execution cut-offs.
-* [ ] Code a memory-safe, IP-based token-bucket rate limiting logic to intercept excessive API requests and guard the Gemini free-tier bounds.
+* [x] **3.1 Build Serverless Endpoint Wrapper & Rate Limiter**
+* [x] Create `/backend/api/chat-stream.js`.
+* [x] Configure the explicit **Vercel Edge Runtime** engine flag (`export const config = { runtime: 'edge' };`) to prevent serverless execution cut-offs.
+* [x] Code a memory-safe, IP-based token-bucket rate limiting logic to intercept excessive API requests and guard the Gemini free-tier bounds.
 
 
-* [ ] **3.2 Embed Google Gemini RAG Architecture**
-* [ ] Install the official `@google/genai` Node.js SDK client package.
-* [ ] Code logic to capture incoming client payloads: `procedure_code`, `userMessage`, `isInitialGreeting`, `language`.
-* [ ] Build database fetch routines mapping dynamic data targets from MongoDB Atlas.
-* [ ] Design the structural system prompt instructions for `gemini-1.5-flash`:
-* [ ] Explicitly lock responses to data inside the injected database payload.
-* [ ] Block the AI from guessing or answering if factual variables are missing from the record.
+* [x] **3.2 Embed Google Gemini RAG Architecture**
+* [x] Install the official `@google/genai` Node.js SDK client package.
+* [x] Code logic to capture incoming client payloads: `procedure_code`, `userMessage`, `isInitialGreeting`, `language`.
+* [x] Build database fetch routines mapping dynamic data targets from MongoDB Atlas.
+* [x] Design the structural system prompt instructions for `gemini-1.5-flash`:
+* [x] Explicitly lock responses to data inside the injected database payload.
+* [x] Block the AI from guessing or answering if factual variables are missing from the record.
 
 
-* [ ] Force output matching selected user language context (`en` / `fr`).
+* [x] Force output matching selected user language context (`en` / `fr`).
 
 
-* [ ] Implement the **Soft Redirect Guardrail**: If an off-topic query occurs, generate general background metadata but clearly direct them to alternate the application selection drop-down matrix.
+* [x] Implement the **Soft Redirect Guardrail**: If an off-topic query occurs, generate general background metadata but clearly direct them to alternate the application selection drop-down matrix.
 
 
 
 
-* [ ] **3.3 Configure Real-Time SSE Response Loop**
-* [ ] Map Gemini chunk responses natively via `ai.models.generateContentStream`.
-* [ ] Enqueue chunks via standard `ReadableStream` conforming to **Server-Sent Events (SSE)** syntax formatting boundaries (`data: {"text": "..."}\n\n`).
+* [x] **3.3 Configure Real-Time SSE Response Loop**
+* [x] Map Gemini chunk responses natively via `ai.models.generateContentStream`.
+* [x] Enqueue chunks via standard `ReadableStream` conforming to **Server-Sent Events (SSE)** syntax formatting boundaries (`data: {"text": "..."}\n\n`).
 
 
 * [ ] **3.4 TDD Verification**
@@ -140,23 +140,23 @@ You can copy and paste this directly into a markdown file in your repository.
 
 ## 📄 Phase 4: Document Checklist Generation Service
 
-* [ ] **4.1 Create PDF Export Function**
-* [ ] Create serverless function module at `/backend/api/export-checklist.js`.
-* [ ] Set function target configuration parameter to standard Vercel Serverless environment execution settings.
-* [ ] Install a lightweight streaming compilation library package (e.g., `pdfkit` or a serverless-friendly wrapper).
+* [x] **4.1 Create PDF Export Function**
+* [x] Create serverless function module at `/backend/api/export-checklist.js`.
+* [x] Set function target configuration parameter to standard Vercel Serverless environment execution settings.
+* [x] Install a lightweight streaming compilation library package (e.g., `pdfkit` or a serverless-friendly wrapper).
 
 
-* [ ] **4.2 Code Document Template Rendering Logic**
-* [ ] Standardize a clean layout structure (Official Header layout, Metadata grid block mapping Cost and Timeline metrics, Checklist matrix matching array requirements).
-* [ ] Ensure full text-encoding support so accents and localized typographic parameters for French and English translate cleanly to the canvas layout.
+* [x] **4.2 Code Document Template Rendering Logic**
+* [x] Standardize a clean layout structure (Official Header layout, Metadata grid block mapping Cost and Timeline metrics, Checklist matrix matching array requirements).
+* [x] Ensure full text-encoding support so accents and localized typographic parameters for French and English translate cleanly to the canvas layout.
 
 
 
 
-* [ ] **4.3 Implement Binary Streaming Response**
-* [ ] Prevent file writes to localized server paths.
-* [ ] Format request response parameters (`Content-Type: application/pdf`, `Content-Disposition: attachment; filename=checklist.pdf`).
-* [ ] Stream completed output files cleanly via pure binary stream payload buffers to minimize server-side footprint.
+* [x] **4.3 Implement Binary Streaming Response**
+* [x] Prevent file writes to localized server paths.
+* [x] Format request response parameters (`Content-Type: application/pdf`, `Content-Disposition: attachment; filename=checklist.pdf`).
+* [x] Stream completed output files cleanly via pure binary stream payload buffers to minimize server-side footprint.
 
 
 * [ ] **4.4 TDD Verification**
@@ -170,7 +170,7 @@ You can copy and paste this directly into a markdown file in your repository.
 ## 📱 Phase 5: Mobile-First WhatsApp-Style UI
 
 * [ ] **5.1 Initialize Application Configurations & Styling**
-* [ ] Configure Tailwind CSS configurations to guarantee lean compilation and highly optimized page bundle footprints.
+* [x] Configure Tailwind CSS configurations to guarantee lean compilation and highly optimized page bundle footprints.
 * [ ] Verify asset configurations meet low bandwidth baseline requirements for **3G network** operations.
 
 

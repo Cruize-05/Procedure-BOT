@@ -1,0 +1,15 @@
+{
+  "name": "@procedurebot/backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node scripts/seed.js",
+    "lint": "eslint api shared scripts --ext .js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.12.0",
+    "mongoose": "^8.4.0",
+    "pdfkit": "^0.15.0"
+  }
+}

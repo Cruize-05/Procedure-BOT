@@ -18,11 +18,19 @@ export function useSSEStream() {
         signal: controller.signal,
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        let type = 'http';
+        if (response.status === 429) type = 'rate_limit';
+        else if (response.status === 404) type = 'not_found';
+        else if (response.status >= 500) type = 'server';
+        onError?.({ type, status: response.status });
+        return;
+      }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let streamErrored = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -32,18 +40,24 @@ export function useSSEStream() {
         buffer = lines.pop();
         for (const line of lines) {
           if (line.startsWith('data: ')) {
+            const raw = line.slice(6);
+            if (raw === '[DONE]') continue;
             try {
-              const parsed = JSON.parse(line.slice(6));
+              const parsed = JSON.parse(raw);
               if (parsed.text) onToken(parsed.text);
+              else if (parsed.error) {
+                streamErrored = true;
+                onError?.({ type: 'stream', message: parsed.error });
+              }
             } catch {
               // malformed SSE chunk — skip
             }
           }
         }
       }
-      onDone?.();
+      if (!streamErrored) onDone?.();
     } catch (err) {
-      if (err.name !== 'AbortError') onError?.(err);
+      if (err.name !== 'AbortError') onError?.({ type: 'network', message: err.message });
     } finally {
       setIsStreaming(false);
     }

@@ -8,6 +8,25 @@ function formatTime(ts) {
 export function ChatMessage({ message }) {
   const isUser = message.role === 'user';
 
+  if (message.isError) {
+    return (
+      <div
+        data-testid="chat-message"
+        data-role="error"
+        className="flex w-full mb-1 justify-start"
+      >
+        <div className="max-w-[90%] rounded-lg px-3 py-2 shadow-sm bg-amber-50 border border-amber-300">
+          <p className="text-sm text-amber-800 whitespace-pre-wrap break-words leading-relaxed">
+            {message.text}
+          </p>
+          <p className="text-[10px] text-amber-400 text-right mt-0.5 select-none">
+            {formatTime(message.timestamp)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       data-testid="chat-message"

@@ -2,7 +2,19 @@ import React from 'react';
 import { Select } from './ui/Select';
 import { PROCEDURES } from '../constants/procedures';
 
-export function Header({ procedure, onProcedureChange, language, onLanguageChange }) {
+const DOWNLOAD_LABEL = {
+  en: 'Download Checklist PDF',
+  fr: 'Télécharger la liste PDF',
+};
+
+export function Header({
+  procedure,
+  onProcedureChange,
+  language,
+  onLanguageChange,
+  onDownload,
+  isDownloading = false,
+}) {
   const options = PROCEDURES.map((p) => ({
     value: p.code,
     label: language === 'fr' ? p.fr : p.en,
@@ -13,6 +25,8 @@ export function Header({ procedure, onProcedureChange, language, onLanguageChang
 
   const selectLabel =
     language === 'fr' ? 'Sélectionner une procédure' : 'Select a procedure';
+
+  const downloadLabel = DOWNLOAD_LABEL[language] ?? DOWNLOAD_LABEL.en;
 
   return (
     <header
@@ -38,6 +52,38 @@ export function Header({ procedure, onProcedureChange, language, onLanguageChang
           data-testid="procedure-selector"
         />
       </div>
+
+      {/* PDF download button — only visible when a procedure is selected */}
+      {procedure && (
+        <button
+          onClick={onDownload}
+          disabled={isDownloading}
+          data-testid="download-pdf-button"
+          aria-label={downloadLabel}
+          title={downloadLabel}
+          className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-white/20 text-white hover:bg-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isDownloading ? (
+            <span className="w-3 h-3 border-2 border-white/60 border-t-white rounded-full animate-spin" />
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          )}
+        </button>
+      )}
 
       {/* Language toggle */}
       <button

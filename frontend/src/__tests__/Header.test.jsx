@@ -9,6 +9,8 @@ const base = {
   onProcedureChange: vi.fn(),
   language: 'en',
   onLanguageChange: vi.fn(),
+  onDownload: vi.fn(),
+  isDownloading: false,
 };
 
 describe('Header', () => {
@@ -61,5 +63,48 @@ describe('Header', () => {
   it('has an accessible label on the procedure select', () => {
     render(<Header {...base} />);
     expect(screen.getByRole('combobox')).toHaveAccessibleName(/select a procedure/i);
+  });
+
+  // ── PDF download button ──────────────────────────────────────────────────
+
+  it('does NOT render the download button when no procedure is selected', () => {
+    render(<Header {...base} procedure="" />);
+    expect(screen.queryByTestId('download-pdf-button')).not.toBeInTheDocument();
+  });
+
+  it('renders the download button when a procedure is selected', () => {
+    render(<Header {...base} procedure="NID" />);
+    expect(screen.getByTestId('download-pdf-button')).toBeInTheDocument();
+  });
+
+  it('calls onDownload when the download button is clicked', () => {
+    const onDownload = vi.fn();
+    render(<Header {...base} procedure="NID" onDownload={onDownload} />);
+    fireEvent.click(screen.getByTestId('download-pdf-button'));
+    expect(onDownload).toHaveBeenCalledTimes(1);
+  });
+
+  it('download button is disabled while isDownloading is true', () => {
+    render(<Header {...base} procedure="NID" isDownloading={true} />);
+    expect(screen.getByTestId('download-pdf-button')).toBeDisabled();
+  });
+
+  it('download button is enabled when isDownloading is false', () => {
+    render(<Header {...base} procedure="NID" isDownloading={false} />);
+    expect(screen.getByTestId('download-pdf-button')).not.toBeDisabled();
+  });
+
+  it('download button has accessible label in English', () => {
+    render(<Header {...base} procedure="NID" language="en" />);
+    expect(screen.getByTestId('download-pdf-button')).toHaveAccessibleName(
+      /download checklist pdf/i
+    );
+  });
+
+  it('download button has accessible label in French', () => {
+    render(<Header {...base} procedure="NID" language="fr" />);
+    expect(screen.getByTestId('download-pdf-button')).toHaveAccessibleName(
+      /télécharger la liste pdf/i
+    );
   });
 });

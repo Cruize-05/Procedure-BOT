@@ -150,21 +150,9 @@ function renderPDF(doc, { lang, labels, name, targetOffice, costCfa, timeline, d
     .text(labels.footer(date), { align: 'center' });
 }
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
-  const body = req.body ?? {};
-  const validation = validateBody(body);
-
-  if (validation.error) {
-    return res.status(400).json({ error: validation.error });
-  }
-
-  const { lang } = validation;
+async function generatePDF(res, body) {
+  const { lang } = validateBody(body);
   const {
-    procedure_code,
     name,
     official_cost_cfa,
     estimated_timeline,
@@ -202,6 +190,45 @@ export default async function handler(req, res) {
   res.setHeader('Content-Disposition', `attachment; filename=checklist.pdf`);
   res.setHeader('Content-Length', pdfBuffer.length);
   res.send(pdfBuffer);
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  let body = req.body ?? {};
+
+  // Simple lookup mode: frontend sends only { procedure_code, language }.
+  // Detect this by the absence of full document fields (name, target_office, etc.).
+  const hasDocumentFields = body.name || body.target_office || body.required_documents;
+  if (body.procedure_code && !hasDocumentFields) {
+    const lang = body.language === 'fr' ? 'fr' : 'en';
+    try {
+      const mongoose = (await import('mongoose')).default;
+      const { Procedure } = await import('../shared/schema.js');
+
+      if (mongoose.connection.readyState === 0) {
+        await mongoose.connect(process.env.MONGODB_URI);
+      }
+
+      const proc = await Procedure.findOne({ procedure_code: body.procedure_code }).lean();
+      if (!proc) {
+        return res.status(404).json({ error: `Procedure '${body.procedure_code}' not found.` });
+      }
+
+      body = { ...body, language: lang, ...proc };
+    } catch {
+      return res.status(503).json({ error: 'Database connection error. Please try again.' });
+    }
+  }
+
+  const validation = validateBody(body);
+  if (validation.error) {
+    return res.status(400).json({ error: validation.error });
+  }
+
+  return generatePDF(res, body);
 }
 
 export { renderPDF, validateBody, LABELS };

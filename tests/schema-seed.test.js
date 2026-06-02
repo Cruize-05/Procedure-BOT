@@ -6,8 +6,8 @@
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { Procedure } from '../backend/shared/schema.js';
-import { procedures, seedDatabase } from '../backend/scripts/seed.js';
+import { Procedure } from '../lib/schema.js';
+import { procedures, seedDatabase } from '../scripts/seed.js';
 
 let mongoServer;
 

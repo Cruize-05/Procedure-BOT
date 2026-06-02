@@ -10,8 +10,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'json-summary'],
-      include: ['backend/**/*.js'],
-      exclude: ['backend/scripts/**', '**/node_modules/**'],
+      include: ['api/**/*.js', 'lib/**/*.js'],
+      exclude: ['scripts/**', '**/node_modules/**'],
     },
   },
 });

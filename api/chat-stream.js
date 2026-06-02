@@ -109,7 +109,7 @@ export default async function handler(req) {
 
   // ── DB lookup (dynamic import keeps mongoose out of the Edge cold-start path)
   const { default: mongoose } = await import('mongoose');
-  const { Procedure } = await import('../shared/schema.js');
+  const { Procedure } = await import('../lib/schema.js');
 
   if (mongoose.connection.readyState === 0) {
     await mongoose.connect(process.env.MONGODB_URI);

@@ -206,7 +206,7 @@ export default async function handler(req, res) {
     const lang = body.language === 'fr' ? 'fr' : 'en';
     try {
       const mongoose = (await import('mongoose')).default;
-      const { Procedure } = await import('../shared/schema.js');
+      const { Procedure } = await import('../lib/schema.js');
 
       if (mongoose.connection.readyState === 0) {
         await mongoose.connect(process.env.MONGODB_URI);

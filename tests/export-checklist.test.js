@@ -45,7 +45,7 @@ const MockPDFDocument = vi.hoisted(() => {
 
 vi.mock('pdfkit', () => ({ default: MockPDFDocument }));
 
-import handler, { validateBody, LABELS } from '../backend/api/export-checklist.js';
+import handler, { validateBody, LABELS } from '../api/export-checklist.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function makeRes() {

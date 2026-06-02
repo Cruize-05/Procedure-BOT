@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { fileURLToPath } from 'node:url';
 import mongoose from 'mongoose';
-import { Procedure } from '../shared/schema.js';
+import { Procedure } from '../lib/schema.js';
 
 export const procedures = [
   {
@@ -116,7 +116,7 @@ export const procedures = [
       ],
       fr: [
         'Statuts de société notariés',
-        'Pièces d\'identité de tous les actionnaires',
+        "Pièces d'identité de tous les actionnaires",
         'Justificatif de siège social',
         'Certificat de dépôt de capital',
       ],
@@ -166,7 +166,7 @@ export const procedures = [
         'Actes de naissance des deux parties',
         "Cartes nationales d'identité",
         'Certificats médicaux (bilan prénuptial)',
-        'Pièces d\'identité des témoins (2 par partie)',
+        "Pièces d'identité des témoins (2 par partie)",
       ],
     },
     steps: {
@@ -273,8 +273,8 @@ export const procedures = [
       ],
       fr: [
         { step_number: 1, instruction: "S'inscrire dans une auto-école agréée et effectuer les heures de formation requises." },
-        { step_number: 2, instruction: 'Réussir l\'examen théorique au Ministère des Transports (MINT).' },
-        { step_number: 3, instruction: 'Réussir l\'examen pratique de conduite.' },
+        { step_number: 2, instruction: "Réussir l'examen théorique au Ministère des Transports (MINT)." },
+        { step_number: 3, instruction: "Réussir l'examen pratique de conduite." },
         { step_number: 4, instruction: 'Déposer le dossier de demande au MINT.' },
         { step_number: 5, instruction: 'Retirer le permis (généralement 2 à 6 semaines après la réussite).' },
       ],
@@ -390,7 +390,7 @@ export const procedures = [
       fr: [
         'Certificat médical de décès (signé par un médecin)',
         "Pièce d'identité du défunt",
-        'Pièce d\'identité du déclarant',
+        "Pièce d'identité du déclarant",
       ],
     },
     steps: {

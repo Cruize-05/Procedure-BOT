@@ -29,7 +29,7 @@ vi.mock('mongoose', () => ({
   },
 }));
 
-vi.mock('../backend/shared/schema.js', () => ({
+vi.mock('../lib/schema.js', () => ({
   Procedure: { findOne: mockFindOne },
 }));
 
@@ -38,7 +38,7 @@ import handler, {
   config,
   _testOnly_clearBuckets,
   buildSystemPrompt,
-} from '../backend/api/chat-stream.js';
+} from '../api/chat-stream.js';
 
 // ── Test helpers ──────────────────────────────────────────────────────────
 /** Simulate the mongoose query chain: findOne(...).lean() */

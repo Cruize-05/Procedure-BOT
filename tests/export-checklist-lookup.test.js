@@ -55,11 +55,11 @@ vi.mock('mongoose', () => ({
   },
 }));
 
-vi.mock('../backend/shared/schema.js', () => ({
+vi.mock('../lib/schema.js', () => ({
   Procedure: { findOne: mockFindOne },
 }));
 
-import handler from '../backend/api/export-checklist.js';
+import handler from '../api/export-checklist.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function makeRes() {

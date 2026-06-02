@@ -1,7 +1,7 @@
 /**
  * Workspace structure sanity tests.
- * Verifies that all required files and directories exist before the pipeline
- * proceeds to later stages. Catches missing scaffolding early.
+ * Verifies that all required files exist before the pipeline proceeds to later
+ * stages. Updated for the deployment-ready flat structure (api/, lib/, scripts/).
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
@@ -15,7 +15,6 @@ function abs(...parts) {
   return join(ROOT, ...parts);
 }
 
-// ── Helper: parse JSON without throwing ───────────────────────────────────────
 function readJSON(filePath) {
   try {
     return JSON.parse(readFileSync(filePath, 'utf8'));
@@ -31,7 +30,15 @@ const REQUIRED_PATHS = [
   '.env.example',
   '.gitlab-ci.yml',
   'vitest.config.js',
-  // Frontend
+  'vercel.json',
+  // API functions (Vercel standard /api directory)
+  'api/chat-stream.js',
+  'api/export-checklist.js',
+  // Shared backend library
+  'lib/schema.js',
+  // DB seed script
+  'scripts/seed.js',
+  // Frontend SPA
   'frontend/package.json',
   'frontend/vite.config.js',
   'frontend/index.html',
@@ -40,12 +47,6 @@ const REQUIRED_PATHS = [
   'frontend/src/main.jsx',
   'frontend/src/App.jsx',
   'frontend/src/index.css',
-  // Backend
-  'backend/package.json',
-  'backend/shared/schema.js',
-  'backend/api/chat-stream.js',
-  'backend/api/export-checklist.js',
-  'backend/scripts/seed.js',
 ];
 
 describe('Workspace file structure', () => {
@@ -62,10 +63,16 @@ describe('Root package.json', () => {
     expect(pkg).not.toBeNull();
   });
 
-  it('declares workspaces containing frontend and backend', () => {
+  it('declares frontend workspace', () => {
     expect(Array.isArray(pkg?.workspaces)).toBe(true);
     expect(pkg.workspaces).toContain('frontend');
-    expect(pkg.workspaces).toContain('backend');
+  });
+
+  it('declares production dependencies for API functions', () => {
+    const deps = pkg?.dependencies ?? {};
+    expect(deps).toHaveProperty('@google/genai');
+    expect(deps).toHaveProperty('mongoose');
+    expect(deps).toHaveProperty('pdfkit');
   });
 
   it('has required npm scripts', () => {
@@ -131,10 +138,31 @@ describe('.gitlab-ci.yml', () => {
   });
 });
 
-// ── chat-stream.js edge runtime config ────────────────────────────────────────
-describe('backend/api/chat-stream.js', () => {
-  const src = existsSync(abs('backend/api/chat-stream.js'))
-    ? readFileSync(abs('backend/api/chat-stream.js'), 'utf8')
+// ── vercel.json validation ────────────────────────────────────────────────────
+describe('vercel.json', () => {
+  const cfg = readJSON(abs('vercel.json'));
+
+  it('is valid JSON', () => {
+    expect(cfg).not.toBeNull();
+  });
+
+  it('points buildCommand at the frontend workspace', () => {
+    expect(cfg?.buildCommand).toContain('frontend');
+  });
+
+  it('points outputDirectory at frontend/dist', () => {
+    expect(cfg?.outputDirectory).toBe('frontend/dist');
+  });
+
+  it('configures api/export-checklist.js with maxDuration', () => {
+    expect(cfg?.functions?.['api/export-checklist.js']?.maxDuration).toBeGreaterThan(0);
+  });
+});
+
+// ── api/chat-stream.js validation ────────────────────────────────────────────
+describe('api/chat-stream.js', () => {
+  const src = existsSync(abs('api/chat-stream.js'))
+    ? readFileSync(abs('api/chat-stream.js'), 'utf8')
     : '';
 
   it("exports Vercel Edge Runtime config `{ runtime: 'edge' }`", () => {
@@ -152,12 +180,16 @@ describe('backend/api/chat-stream.js', () => {
   it('sends [DONE] sentinel to close the stream', () => {
     expect(src).toContain('[DONE]');
   });
+
+  it('imports schema from lib/', () => {
+    expect(src).toContain('../lib/schema.js');
+  });
 });
 
-// ── export-checklist.js validation ───────────────────────────────────────────
-describe('backend/api/export-checklist.js', () => {
-  const src = existsSync(abs('backend/api/export-checklist.js'))
-    ? readFileSync(abs('backend/api/export-checklist.js'), 'utf8')
+// ── api/export-checklist.js validation ───────────────────────────────────────
+describe('api/export-checklist.js', () => {
+  const src = existsSync(abs('api/export-checklist.js'))
+    ? readFileSync(abs('api/export-checklist.js'), 'utf8')
     : '';
 
   it('uses pdfkit for PDF generation', () => {
@@ -172,12 +204,16 @@ describe('backend/api/export-checklist.js', () => {
     expect(src).not.toContain('writeFile');
     expect(src).not.toContain('writeFileSync');
   });
+
+  it('imports schema from lib/', () => {
+    expect(src).toContain('../lib/schema.js');
+  });
 });
 
-// ── schema.js validation ──────────────────────────────────────────────────────
-describe('backend/shared/schema.js', () => {
-  const src = existsSync(abs('backend/shared/schema.js'))
-    ? readFileSync(abs('backend/shared/schema.js'), 'utf8')
+// ── lib/schema.js validation ──────────────────────────────────────────────────
+describe('lib/schema.js', () => {
+  const src = existsSync(abs('lib/schema.js'))
+    ? readFileSync(abs('lib/schema.js'), 'utf8')
     : '';
 
   it('uses mongoose', () => {
@@ -185,8 +221,8 @@ describe('backend/shared/schema.js', () => {
   });
 
   it('defines bilingual en/fr fields in a single document schema', () => {
-    expect(src).toContain("en:");
-    expect(src).toContain("fr:");
+    expect(src).toContain('en:');
+    expect(src).toContain('fr:');
   });
 
   it('uses procedure_code as primary lookup key with unique index', () => {

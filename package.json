@@ -2,16 +2,16 @@
   "name": "procedurebot-cm",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "ProcedureBot CM — Bilingual civic assistant for Cameroonian administrative procedures",
   "workspaces": [
-    "frontend",
-    "backend"
+    "frontend"
   ],
   "scripts": {
     "dev": "npm run dev --workspace=frontend",
     "build": "npm run build --workspace=frontend",
     "preview": "npm run preview --workspace=frontend",
-    "seed": "node backend/scripts/seed.js",
+    "seed": "node scripts/seed.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
@@ -23,7 +23,12 @@
     "typecheck": "tsc --noEmit",
     "vercel:dev": "vercel dev",
     "vercel:build": "vercel build",
-    "clean": "rimraf node_modules frontend/node_modules backend/node_modules frontend/dist"
+    "clean": "rimraf node_modules frontend/node_modules frontend/dist"
+  },
+  "dependencies": {
+    "@google/genai": "^2.7.0",
+    "mongoose": "^8.4.0",
+    "pdfkit": "^0.15.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",

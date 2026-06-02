@@ -13,7 +13,6 @@ cache:
   paths:
     - node_modules/
     - frontend/node_modules/
-    - backend/node_modules/
 
 variables:
   NODE_ENV: "test"
@@ -39,7 +38,6 @@ install:dependencies:
     paths:
       - node_modules/
       - frontend/node_modules/
-      - backend/node_modules/
     expire_in: 1 hour
 
 # ── Stage 2: Lint & Tests ──────────────────────────────────────────────────────
@@ -103,7 +101,7 @@ security:sonarqube:
         -Dsonar.projectKey=procedurebot-cm \
         -Dsonar.projectName="ProcedureBot CM" \
         -Dsonar.projectVersion="${CI_COMMIT_SHORT_SHA}" \
-        -Dsonar.sources=frontend/src,backend \
+        -Dsonar.sources=frontend/src,api,lib,scripts \
         -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**,**/*.test.*,**/*.spec.*" \
         -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
         -Dsonar.host.url="${SONAR_HOST_URL}" \

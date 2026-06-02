@@ -1,7 +1,5 @@
-// Vercel Edge Runtime — Gemini RAG + SSE streaming
+// Vercel Edge Runtime — Groq (Llama 3.3 70B) RAG + SSE streaming
 export const config = { runtime: 'edge' };
-
-import { GoogleGenAI } from '@google/genai';
 
 // ── IP-based token-bucket rate limiter ─────────────────────────────────────
 // Max 10 requests / 60 s per IP. Capped at MAX_BUCKETS entries to bound
@@ -124,9 +122,7 @@ export default async function handler(req) {
     );
   }
 
-  // ── Gemini streaming ──────────────────────────────────────────────────────
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
+  // ── DeepSeek streaming ────────────────────────────────────────────────────
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
@@ -135,17 +131,48 @@ export default async function handler(req) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
 
       try {
-        const result = await ai.models.generateContentStream({
-          model: 'gemini-1.5-flash',
-          contents: [{ role: 'user', parts: [{ text: message }] }],
-          config: {
-            systemInstruction: buildSystemPrompt(procedure, normalizedLang),
+        const dsRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
           },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            stream: true,
+            messages: [
+              { role: 'system', content: buildSystemPrompt(procedure, normalizedLang) },
+              { role: 'user', content: message },
+            ],
+          }),
         });
 
-        for await (const chunk of result) {
-          const text = chunk.text;
-          if (text) enqueue({ text });
+        if (!dsRes.ok) {
+          const errText = await dsRes.text();
+          enqueue({ error: errText });
+        } else {
+          const reader = dsRes.body.getReader();
+          const dec = new TextDecoder();
+          let buf = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += dec.decode(value, { stream: true });
+            const lines = buf.split('\n');
+            buf = lines.pop(); // keep incomplete last line
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed || trimmed === 'data: [DONE]') continue;
+              if (trimmed.startsWith('data: ')) {
+                try {
+                  const json = JSON.parse(trimmed.slice(6));
+                  const text = json.choices?.[0]?.delta?.content;
+                  if (text) enqueue({ text });
+                } catch { /* skip malformed chunk */ }
+              }
+            }
+          }
         }
       } catch (err) {
         enqueue({ error: err.message ?? 'Streaming error.' });

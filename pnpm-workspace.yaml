@@ -1,5 +1,0 @@
-allowBuilds:
-  '@google/genai': true
-  esbuild: true
-  mongodb-memory-server: true
-  protobufjs: true

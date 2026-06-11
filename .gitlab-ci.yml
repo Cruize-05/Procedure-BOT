@@ -1,0 +1,159 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# ProcedureBot CM — GitLab CI/CD Pipeline
+# Stages: lint → sonarqube (warning-only) → vercel-dry-run
+# ──────────────────────────────────────────────────────────────────────────────
+
+image: node:20-slim
+
+# Pipeline-level cache keyed on lock file so clean installs are fast
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - node_modules/
+    - frontend/node_modules/
+
+variables:
+  NODE_ENV: "test"
+  # Override in GitLab CI/CD masked variables for real deployments
+  SONAR_HOST_URL: "${SONAR_HOST_URL}"
+  SONAR_TOKEN: "${SONAR_TOKEN}"
+  VERCEL_TOKEN: "${VERCEL_TOKEN}"
+  VERCEL_ORG_ID: "${VERCEL_ORG_ID}"
+  VERCEL_PROJECT_ID: "${VERCEL_PROJECT_ID}"
+
+stages:
+  - install
+  - lint
+  - security
+  - build
+
+# ── Stage 1: Install ───────────────────────────────────────────────────────────
+install:dependencies:
+  stage: install
+  script:
+    - npm ci --prefer-offline
+  artifacts:
+    paths:
+      - node_modules/
+      - frontend/node_modules/
+    expire_in: 1 hour
+
+# ── Stage 2: Lint & Tests ──────────────────────────────────────────────────────
+lint:eslint:
+  stage: lint
+  needs: ["install:dependencies"]
+  script:
+    - echo "▶ Running ESLint across workspace..."
+    - npm run lint
+  artifacts:
+    when: always
+    reports:
+      junit: lint-report.xml
+    expire_in: 1 week
+
+lint:format:
+  stage: lint
+  needs: ["install:dependencies"]
+  script:
+    - echo "▶ Checking Prettier formatting..."
+    - npm run format:check
+  allow_failure: true
+
+lint:unit-tests:
+  stage: lint
+  needs: ["install:dependencies"]
+  script:
+    - echo "▶ Running workspace structure sanity tests..."
+    - npm run test -- --reporter=verbose
+  artifacts:
+    when: always
+    reports:
+      junit: test-results.xml
+    paths:
+      - coverage/
+    expire_in: 1 week
+  coverage: '/Lines\s*:\s*(\d+\.?\d*)%/'
+
+# ── Stage 3: Security — SonarQube Warning Gate ────────────────────────────────
+#
+# EXIT CODE POLICY: this job always exits 0.
+# SonarQube findings are logged to artifacts and console, but they MUST NOT
+# block the pipeline. This is intentional for the academic/free-tier context.
+#
+security:sonarqube:
+  stage: security
+  needs: ["lint:unit-tests"]
+  image: sonarsource/sonar-scanner-cli:latest
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - echo "▶ Running SonarQube analysis (warning-only gate)..."
+    - |
+      # Run scanner; capture exit code without failing the job
+      sonar-scanner \
+        -Dsonar.projectKey=procedurebot-cm \
+        -Dsonar.projectName="ProcedureBot CM" \
+        -Dsonar.projectVersion="${CI_COMMIT_SHORT_SHA}" \
+        -Dsonar.sources=frontend/src,api,lib,scripts \
+        -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**,**/*.test.*,**/*.spec.*" \
+        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+        -Dsonar.host.url="${SONAR_HOST_URL}" \
+        -Dsonar.login="${SONAR_TOKEN}" \
+        -Dsonar.qualitygate.wait=true 2>&1 | tee sonar-output.log || SONAR_EXIT=$?
+
+      if [ -n "$SONAR_EXIT" ] && [ "$SONAR_EXIT" -ne 0 ]; then
+        echo ""
+        echo "════════════════════════════════════════════════════════════"
+        echo "  ⚠  SonarQube WARNING GATE — quality issues detected"
+        echo "  Exit code from scanner: ${SONAR_EXIT}"
+        echo "  Review sonar-output.log artifact for details."
+        echo "  Pipeline continues (warning-only policy — exit 0)."
+        echo "════════════════════════════════════════════════════════════"
+      else
+        echo "✔ SonarQube quality gate passed."
+      fi
+
+      # Always exit 0 — warnings are informational, not blockers
+      exit 0
+  artifacts:
+    when: always
+    paths:
+      - sonar-output.log
+    expire_in: 2 weeks
+  # Run even when SONAR_HOST_URL is not set (e.g., forks without the variable)
+  allow_failure: true
+
+# ── Stage 4: Vercel Dry-Run Build ─────────────────────────────────────────────
+build:vercel-dry-run:
+  stage: build
+  needs: ["security:sonarqube"]
+  before_script:
+    - npm install -g vercel@latest
+  script:
+    - echo "▶ Running Vercel dry-run build..."
+    - |
+      vercel build \
+        --token="${VERCEL_TOKEN}" \
+        --yes 2>&1 | tee vercel-build.log || VERCEL_EXIT=$?
+
+      if [ -n "$VERCEL_EXIT" ] && [ "$VERCEL_EXIT" -ne 0 ]; then
+        echo "✖ Vercel dry-run failed. See vercel-build.log for details."
+        exit "${VERCEL_EXIT}"
+      fi
+
+      echo "✔ Vercel dry-run succeeded."
+  artifacts:
+    when: always
+    paths:
+      - vercel-build.log
+      - .vercel/output/
+    expire_in: 1 week
+  # Allow failure on forks where VERCEL_TOKEN is not set
+  allow_failure: true

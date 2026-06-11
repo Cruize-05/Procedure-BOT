@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.vercel/
+
+# Environment — NEVER commit real env values
+.env
+.env.local
+.env.*.local
+
+# Coverage & test artifacts
+coverage/
+test-results.xml
+lint-report.xml
+sonar-output.log
+vercel-build.log
+.sonar/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/settings.json

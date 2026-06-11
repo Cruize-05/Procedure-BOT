@@ -8,6 +8,7 @@
     "frontend"
   ],
   "scripts": {
+    "start": "node server.js",
     "dev": "npm run dev --workspace=frontend",
     "build": "npm run build --workspace=frontend",
     "preview": "npm run preview --workspace=frontend",
